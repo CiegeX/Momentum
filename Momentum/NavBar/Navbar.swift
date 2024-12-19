@@ -11,7 +11,7 @@ struct Navbar: View {
     var body: some View {
         TabView {
             Tab("Timer", systemImage: "clock"){
-                Timer()
+                Time()
             }
             Tab("LockApp", systemImage: "lock"){
                 LockApp()

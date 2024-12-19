@@ -9,7 +9,7 @@ import SwiftUI
 
 struct Account: View {
     var body: some View {
-        Text("Hello, World!")
+        Text("User Account Page")
     }
 }
 
