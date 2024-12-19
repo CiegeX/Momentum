@@ -4,6 +4,8 @@ import EventKit
 struct Time: View {
     @State private var selectedDate = Date()
     @State private var isModalPresented = false
+    @State private var eventsForDay: [EKEvent] = []
+    @State private var calendarAccessGranted = false
 
     var body: some View {
         NavigationView {
@@ -23,65 +25,138 @@ struct Time: View {
                     isModalPresented = true
                 }
             }
-            .navigationTitle("Action Tab")
+            .navigationTitle("24-Hour View")
             .sheet(isPresented: $isModalPresented) {
-                ModalView(selectedDate: selectedDate)
+                ModalView(
+                    selectedDate: selectedDate,
+                    events: $eventsForDay,
+                    addEvent: addEvent
+                )
             }
+            .onAppear {
+                requestCalendarAccess()
+            }
+        }
+    }
+
+    // Request Calendar Access
+    func requestCalendarAccess() {
+        let eventStore = EKEventStore()
+        eventStore.requestFullAccessToEvents() { granted, _ in
+            DispatchQueue.main.async {
+                calendarAccessGranted = granted
+                if granted {
+                    fetchEvents(for: selectedDate)
+                }
+            }
+        }
+    }
+
+    // Fetch Events for a Specific Date
+    func fetchEvents(for date: Date) {
+        guard calendarAccessGranted else { return }
+
+        let eventStore = EKEventStore()
+        let calendar = Calendar.current
+
+        let startOfDay = calendar.startOfDay(for: date)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)
+
+        let predicate = eventStore.predicateForEvents(withStart: startOfDay, end: endOfDay ?? startOfDay, calendars: nil)
+        eventsForDay = eventStore.events(matching: predicate)
+    }
+
+    // Add Event to Calendar
+    func addEvent(title: String, hour: Int, minute: Int, durationSeconds: Int) {
+        guard calendarAccessGranted else { return }
+
+        let eventStore = EKEventStore()
+        let calendar = Calendar.current
+
+        let startOfDay = calendar.startOfDay(for: selectedDate)
+        let eventStart = calendar.date(byAdding: DateComponents(hour: hour, minute: minute), to: startOfDay)
+        let eventEnd = calendar.date(byAdding: .second, value: durationSeconds, to: eventStart!)
+
+        let event = EKEvent(eventStore: eventStore)
+        event.title = title
+        event.startDate = eventStart
+        event.endDate = eventEnd
+        event.calendar = eventStore.defaultCalendarForNewEvents
+
+        do {
+            try eventStore.save(event, span: .thisEvent)
+            fetchEvents(for: selectedDate) // Refresh events after adding
+        } catch {
+            print("Error saving event: \(error.localizedDescription)")
         }
     }
 
     struct ModalView: View {
         var selectedDate: Date
-        @State private var hours = 0
-        @State private var minutes = 0
-        @State private var seconds = 0
-        @State private var calendarAccessGranted = false
+        @Binding var events: [EKEvent]
+        var addEvent: (String, Int, Int, Int) -> Void
+
+        @State private var selectedHour: Int?
+        @State private var newEventTitle = ""
+        @State private var eventDuration = 3600
 
         var body: some View {
             VStack {
-                Text("You Selected:")
-                Text("\(formattedDate(selectedDate))")
-                    .font(Font.custom("My Font", size: 20))
-
-                Spacer()
-
-                Text("Set Time Duration")
+                Text("Timeline for \(formattedDate(selectedDate))")
                     .font(.headline)
+                    .padding()
 
-                HStack {
-                    Picker("Hours", selection: $hours) {
-                        ForEach(0..<24, id: \.self) { Text("\($0)").tag($0) }
+                ScrollView {
+                    VStack {
+                        ForEach(0..<24, id: \.self) { hour in
+                            HourRow(hour: hour, events: eventsForHour(hour: hour), onTap: {
+                                selectedHour = hour
+                            })
+                        }
                     }
-                    .pickerStyle(WheelPickerStyle())
-                    .frame(width: 100)
-
-                    Picker("Minutes", selection: $minutes) {
-                        ForEach(0..<60, id: \.self) { Text("\($0)").tag($0) }
-                    }
-                    .pickerStyle(WheelPickerStyle())
-                    .frame(width: 100)
-
-                    Picker("Seconds", selection: $seconds) {
-                        ForEach(0..<60, id: \.self) { Text("\($0)").tag($0) }
-                    }
-                    .pickerStyle(WheelPickerStyle())
-                    .frame(width: 100)
                 }
                 .padding()
 
-                Button("Add to Calendar") {
-                    addToCalendar()
-                }
-                .padding()
-                .background(Color.green)
-                .foregroundColor(.white)
-                .cornerRadius(10)
+                Divider()
 
-                Spacer()
+                if let hour = selectedHour {
+                    VStack {
+                        Text("Adding Event at \(hour):00")
+                            .font(.headline)
+                            .padding()
+
+                        TextField("Event Title", text: $newEventTitle)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .padding()
+
+                        Picker("Duration (Minutes)", selection: $eventDuration) {
+                            ForEach([15, 30, 45, 60, 120], id: \.self) { duration in
+                                Text("\(duration) min").tag(duration * 60)
+                            }
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                        .padding()
+
+                        Button("Add Event") {
+                            addEvent(newEventTitle, hour, 0, eventDuration)
+                            selectedHour = nil // Reset selection
+                            newEventTitle = "" // Clear input
+                        }
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                    }
+                    .padding()
+                }
             }
-            .padding()
-            .onAppear {
-                requestCalendarAccess()
+        }
+
+        func eventsForHour(hour: Int) -> [EKEvent] {
+            let calendar = Calendar.current
+            return events.filter { event in
+                let eventHour = calendar.component(.hour, from: event.startDate)
+                return eventHour == hour
             }
         }
 
@@ -90,35 +165,54 @@ struct Time: View {
             formatter.dateStyle = .long
             return formatter.string(from: date)
         }
+    }
 
-        func requestCalendarAccess() {
-            let eventStore = EKEventStore()
-            eventStore.requestFullAccessToEvents() { granted, _ in
-                DispatchQueue.main.async {
-                    calendarAccessGranted = granted
+    struct HourRow: View {
+        let hour: Int
+        let events: [EKEvent]
+        let onTap: () -> Void
+
+        var body: some View {
+            VStack(alignment: .leading) {
+                HStack {
+                    Text("\(hour):00")
+                        .font(.caption)
+                        .bold()
+                        .padding(.bottom, 2)
+
+                    Spacer()
+
+                    Button(action: onTap) {
+                        Image(systemName: "plus.circle")
+                            .foregroundColor(.blue)
+                    }
+                }
+
+                if events.isEmpty {
+                    Text("No Events")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                } else {
+                    ForEach(events, id: \.eventIdentifier) { event in
+                        HStack {
+                            Text(event.title)
+                                .font(.subheadline)
+                                .lineLimit(1)
+                            Spacer()
+                            Text("\(formattedTime(event.startDate)) - \(formattedTime(event.endDate))")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                    }
                 }
             }
+            .padding(.vertical, 5)
         }
 
-        func addToCalendar() {
-            guard calendarAccessGranted else {
-                print("Calendar access not granted.")
-                return
-            }
-
-            let eventStore = EKEventStore()
-            let event = EKEvent(eventStore: eventStore)
-            event.title = "Scheduled Event"
-            event.startDate = selectedDate
-            event.endDate = Calendar.current.date(byAdding: .second, value: (hours * 3600) + (minutes * 60) + seconds, to: selectedDate)
-            event.calendar = eventStore.defaultCalendarForNewEvents
-
-            do {
-                try eventStore.save(event, span: .thisEvent)
-                print("Event added to calendar.")
-            } catch {
-                print("Error adding event: \(error.localizedDescription)")
-            }
+        func formattedTime(_ date: Date) -> String {
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
         }
     }
 }
