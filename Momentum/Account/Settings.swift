@@ -79,13 +79,13 @@ struct PushNotificationsView: View {
 
 struct AboutUs: View {
     var body: some View {
-        Text("About Us Page")
+        Text("A great Moment to move forward")
             .navigationTitle("About Us")
     }
 }
 struct PrivacyPolicy: View {
     var body: some View {
-        Text("Privacy Policy Page")
+        Text("Privacy Policy Coming Soon")
             .navigationTitle("Privacy Policy")
     }
 }
