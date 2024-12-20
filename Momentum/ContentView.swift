@@ -8,10 +8,12 @@
 import SwiftUI
 
 struct ContentView: View {
+    @AppStorage("isDarkMode") private var isDarkMode = false
     var body: some View {
         VStack {
             Navbar()
         }
+        .preferredColorScheme(isDarkMode ? .dark : .light)
     }
 }
 

@@ -8,8 +8,25 @@
 import SwiftUI
 
 struct Account: View {
+
     var body: some View {
-        Text("User Account Page")
+        NavigationView {
+            VStack {
+                
+            }
+            .navigationTitle("Account Page")
+            .toolbar {
+                          ToolbarItem(placement: .navigationBarTrailing) {
+                              NavigationLink(destination: Settings()) {
+                                  Image(systemName: "gearshape")
+                                      .imageScale(.large)
+                              }
+                          }
+                      }
+        }
+
+
+      
     }
 }
 
