@@ -40,6 +40,21 @@ struct Settings: View {
                         }
                     }
                 }
+                Section(header: Text("Momentum").font(.headline)) {
+                    NavigationLink(destination: AboutUs()) {
+                        HStack {
+                            Image(systemName: "person.crop.circle")
+                            Text("About us")
+                        }
+                    }
+                    
+                    NavigationLink(destination: PrivacyPolicy()) {
+                        HStack {
+                            Image(systemName: "key")
+                            Text("Privacy Policy ")
+                        }
+                    }
+                }
             }
             .navigationTitle("Settings")
             .preferredColorScheme(isDarkMode ? .dark : .light)
@@ -59,6 +74,19 @@ struct PushNotificationsView: View {
     var body: some View {
         Text("Push Notifications Page")
             .navigationTitle("Push Notifications")
+    }
+}
+
+struct AboutUs: View {
+    var body: some View {
+        Text("About Us Page")
+            .navigationTitle("About Us")
+    }
+}
+struct PrivacyPolicy: View {
+    var body: some View {
+        Text("Privacy Policy Page")
+            .navigationTitle("Privacy Policy")
     }
 }
 
