@@ -1,0 +1,25 @@
+<plist version="1.0">
+<dict>
+    <!-- Standard keys -->
+    <key>CFBundleName</key>
+    <string>Momentum</string>
+    <key>CFBundleDisplayName</key>
+    <string>Momentum</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.example.Momentum</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    
+    <!-- Family Controls Usage Description -->
+    <key>NSFamilyUsageDescription</key>
+    <string>This app requires access to manage app usage for focus and productivity purposes.</string>
+    
+    <!-- Additional entitlements if necessary -->
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>arm64</string> <!-- Required for 64-bit devices -->
+    </array>
+</dict>
+</plist>

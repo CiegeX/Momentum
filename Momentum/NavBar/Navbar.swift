@@ -1,37 +1,32 @@
-//
-//  SwiftUIView.swift
-//  Momentum
-//
-//  Created by Auggie Dev on 12/17/24.
-//
 
 import SwiftUI
 
 struct Navbar: View {
+    @StateObject private var model = AppBlockingModel.shared
+    
     var body: some View {
         TabView {
-            Tab("Timer", systemImage: "clock"){
-                Timer()
-            }
-            Tab("LockApp", systemImage: "lock"){
-                LockApp()
-            }
-            Tab( "AI" , systemImage: "plus"){
-                AI()
-            }
-            Tab("Social", systemImage: "person"){
-                Social()
-            }
-            Tab( "Account" , systemImage: "gear"){
-                Account()
-            }
-            
-        
-            
+            Timer()
+                .tabItem {
+                    Label("Timer", systemImage: "clock")
+                }
+            LockApp()
+                .environmentObject(model)
+                .tabItem {
+                    Label("LockApp", systemImage: "lock")
+                }
+            AI()
+                .tabItem {
+                    Label("AI", systemImage: "plus")
+                }
+            Social()
+                .tabItem {
+                    Label("Social", systemImage: "person")
+                }
+            Account()
+                .tabItem {
+                    Label("Account", systemImage: "gear")
+                }
         }
     }
-}
-
-#Preview {
-    Navbar()
 }
